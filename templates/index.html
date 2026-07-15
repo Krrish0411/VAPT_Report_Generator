@@ -1,0 +1,750 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VAPT One-Click Report Generator</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Garamond', 'Times New Roman', serif;
+            background: #f5f5f5;
+            padding: 20px;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            text-align: center;
+            color: #1a237e;
+            margin-bottom: 10px;
+            font-size: 28px;
+        }
+        .subtitle {
+            text-align: center;
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 16px;
+        }
+        .two-col {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+        }
+        .section {
+            background: #fafafa;
+            padding: 20px;
+            border-radius: 8px;
+            border: 1px solid #e0e0e0;
+        }
+        .section h2 {
+            color: #1a237e;
+            font-size: 18px;
+            margin-bottom: 15px;
+            border-bottom: 2px solid #1a237e;
+            padding-bottom: 8px;
+        }
+        label {
+            display: block;
+            font-weight: bold;
+            margin-top: 12px;
+            margin-bottom: 4px;
+            font-size: 14px;
+        }
+        input, select, textarea {
+            width: 100%;
+            padding: 8px 12px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            font-family: 'Garamond', serif;
+            font-size: 14px;
+        }
+        textarea {
+            min-height: 60px;
+            resize: vertical;
+        }
+        .btn {
+            background: #1a237e;
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            border-radius: 5px;
+            font-size: 16px;
+            cursor: pointer;
+            font-family: 'Garamond', serif;
+            margin-top: 15px;
+            transition: background 0.3s;
+        }
+        .btn:hover {
+            background: #0d1555;
+        }
+        .btn-success {
+            background: #2e7d32;
+        }
+        .btn-success:hover {
+            background: #1b5e20;
+        }
+        .btn-danger {
+            background: #c62828;
+        }
+        .btn-danger:hover {
+            background: #8e0000;
+        }
+        .btn-group {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+            flex-wrap: wrap;
+        }
+        .full-width {
+            grid-column: 1 / -1;
+        }
+        .status-msg {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 4px;
+            display: none;
+        }
+        .status-msg.success {
+            display: block;
+            background: #c8e6c9;
+            color: #1b5e20;
+            border: 1px solid #2e7d32;
+        }
+        .status-msg.error {
+            display: block;
+            background: #ffcdd2;
+            color: #b71c1c;
+            border: 1px solid #c62828;
+        }
+        /* === NEW: Template suggestions autocomplete dropdown === */
+        #vulnNameWrap {
+            position: relative;
+        }
+        #templateSuggestions {
+            position: absolute;
+            left: 0;
+            right: 0;
+            top: 100%;
+            z-index: 50;
+            background: white;
+            border: 1px solid #c5cae9;
+            border-top: none;
+            border-radius: 0 0 6px 6px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.12);
+            max-height: 220px;
+            overflow-y: auto;
+        }
+        .suggestion-item {
+            padding: 8px 12px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            border-bottom: 1px solid #eee;
+            font-size: 14px;
+        }
+        .suggestion-item:last-child { border-bottom: none; }
+        .suggestion-item:hover { background: #e8eaf6; }
+        .suggestion-sev-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            flex-shrink: 0;
+        }
+        .suggestion-name { flex: 1; color: #222; }
+        .suggestion-sev-label { font-size: 12px; color: #777; }
+        .template-hint {
+            font-size: 12px;
+            color: #2e7d32;
+            margin-top: 4px;
+            display: none;
+        }
+        .vuln-list {
+            margin-top: 10px;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        .vuln-item {
+            background: white;
+            padding: 10px;
+            margin: 5px 0;
+            border-radius: 4px;
+            border-left: 4px solid #1a237e;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .vuln-item .sev {
+            font-size: 12px;
+            padding: 2px 8px;
+            border-radius: 3px;
+            color: white;
+        }
+        .sev-critical { background: #C00000; }
+        .sev-high { background: #FF0000; }
+        .sev-medium { background: #FFC000; color: #333; }
+        .sev-low { background: #92D050; color: #333; }
+        .sev-informational { background: #00B0F0; }
+        .badge {
+            display: inline-block;
+            padding: 2px 10px;
+            border-radius: 3px;
+            font-size: 12px;
+        }
+        .poc-step {
+            background: #f5f5f5;
+            padding: 10px;
+            margin: 5px 0;
+            border-radius: 4px;
+            border-left: 3px solid #1a237e;
+        }
+        .add-step-btn {
+            background: #1a237e;
+            color: white;
+            border: none;
+            padding: 5px 15px;
+            border-radius: 3px;
+            cursor: pointer;
+            font-size: 12px;
+            margin-top: 5px;
+        }
+        .remove-step-btn {
+            background: #c62828;
+            color: white;
+            border: none;
+            padding: 2px 10px;
+            border-radius: 3px;
+            cursor: pointer;
+            font-size: 11px;
+            margin-left: 10px;
+        }
+        @media (max-width: 768px) {
+            .two-col {
+                grid-template-columns: 1fr;
+            }
+        }
+        .file-upload {
+            border: 2px dashed #ccc;
+            padding: 15px;
+            text-align: center;
+            border-radius: 4px;
+            margin-top: 10px;
+        }
+        .file-upload input {
+            width: auto;
+        }
+        .image-preview {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-top: 10px;
+        }
+        .image-preview img {
+            max-width: 100px;
+            max-height: 100px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>📄 VAPT One-Click Report Generator</h1>
+        <p class="subtitle">Select vulnerability → Auto-fill details → Add POC → Generate Report</p>
+
+        <div id="statusMsg" class="status-msg"></div>
+
+        <div class="two-col">
+            <!-- LEFT COLUMN -->
+            <div class="section">
+                <h2>🔍 Vulnerability Details</h2>
+                
+                <label>Company Name *</label>
+                <input type="text" id="companyName" placeholder="e.g., Kotak Mahindra AMC" value="Kotak Mahindra AMC">
+                
+                <label>Vulnerability Name *</label>
+                <div id="vulnNameWrap">
+                    <input type="text" id="vulnName" placeholder="e.g., Misconfigured CSP Header" 
+                           autocomplete="off"
+                           oninput="searchTemplate(this.value)"
+                           onblur="trySilentExactFill()">
+                    <div id="templateSuggestions"></div>
+                </div>
+                <div id="templateHint" class="template-hint"></div>
+                
+                <label>Severity *</label>
+                <select id="severity">
+                    <option value="Critical">Critical</option>
+                    <option value="High">High</option>
+                    <option value="Medium">Medium</option>
+                    <option value="Low">Low</option>
+                    <option value="Informational" selected>Informational</option>
+                </select>
+                
+                <label>CWE/CVE</label>
+                <input type="text" id="cweCve" placeholder="e.g., CWE-1021">
+                
+                <label>Description *</label>
+                <textarea id="description" rows="3" placeholder="Detailed description..."></textarea>
+                
+                <label>Business Impact *</label>
+                <textarea id="businessImpact" rows="3" placeholder="Impact of this vulnerability..."></textarea>
+                
+                <label>Remediation *</label>
+                <textarea id="remediation" rows="3" placeholder="Steps to fix..."></textarea>
+                
+                <label>References</label>
+                <input type="text" id="references" placeholder="https://example.com">
+                
+                <label>Vulnerable URLs</label>
+                <input type="text" id="vulnerableUrls" placeholder="https://example.com">
+                
+                <label>Status</label>
+                <select id="status">
+                    <option value="Open">Open</option>
+                    <option value="Fixed">Fixed</option>
+                    <option value="Accepted">Accepted</option>
+                </select>
+            </div>
+
+            <!-- RIGHT COLUMN -->
+            <div class="section">
+                <h2>📸 POC Steps & Images</h2>
+                
+                <label>POC Steps (One-liner per step)</label>
+                <div id="pocStepsContainer">
+                    <div class="poc-step">
+                        <input type="text" placeholder="Step 1: Describe what you did..." 
+                               style="width:80%;display:inline-block;">
+                        <button class="remove-step-btn" onclick="removePocStep(this)">✕</button>
+                    </div>
+                </div>
+                <button class="add-step-btn" onclick="addPocStep()">+ Add POC Step</button>
+                
+                <label>Upload POC Images</label>
+                <div class="file-upload">
+                    <input type="file" id="pocImages" multiple accept="image/*" 
+                           onchange="previewImages(this)">
+                    <div class="image-preview" id="imagePreview"></div>
+                </div>
+                
+                <label style="margin-top:20px;">Report Settings</label>
+                <input type="text" id="testerName" placeholder="Tester Name" value="Krishna Gupta">
+                <input type="text" id="reviewerName" placeholder="Reviewer Name" value="Indrakant Chaubey">
+                <input type="text" id="approverName" placeholder="Approver Name" value="Derrick Anthony">
+                <input type="text" id="scopeUrl" placeholder="Scope URL" value="https://example.com">
+
+                <label>Client Name *</label>
+                <input type="text" id="clientName" placeholder="Shown on the report header & cover page">
+
+                <p style="font-size:12px;color:#777;margin:4px 0 0;">
+                    ℹ️ ProTechmanize logo & watermark are applied automatically on every report — no upload needed.
+                </p>
+                
+                <button class="btn btn-success" onclick="addVulnerability()" style="width:100%;">
+                    ➕ Add Vulnerability
+                </button>
+            </div>
+        </div>
+
+        <!-- BOTTOM SECTION -->
+        <div class="section full-width" style="margin-top:20px;">
+            <h2>📋 Vulnerabilities Added</h2>
+            <div id="vulnList" class="vuln-list">
+                <p style="color:#999;">No vulnerabilities added yet.</p>
+            </div>
+            
+            <div class="btn-group">
+                <button class="btn" onclick="generateReport()" style="flex:2;">
+                    🚀 Generate Report
+                </button>
+                <button class="btn btn-danger" onclick="clearAll()" style="flex:1;">
+                    🗑️ Clear All
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let pocStepCount = 1;
+        let vulnerabilityCount = 0;
+        let uploadedImages = [];
+
+        // ===== TEMPLATE AUTO-FILL (Knowledge Base) =====
+        // Maps severity -> the same color used in the generated report
+        // tables, so the dropdown dot gives an instant visual cue.
+        const SEVERITY_DOT_COLORS = {
+            'Critical': '#C00000',
+            'High': '#FF0000',
+            'Medium': '#FFC000',
+            'Low': '#92D050',
+            'Informational': '#00B0F0'
+        };
+
+        let lastSuggestions = [];        // cache of the most recent /search_templates results
+        let lastFilledTemplateName = ''; // avoids re-filling the same template twice in a row
+        let searchDebounceTimer = null;
+
+        function searchTemplate(name) {
+            const hint = document.getElementById('templateHint');
+            hint.style.display = 'none';
+
+            if (!name || name.trim().length < 2) {
+                document.getElementById('templateSuggestions').innerHTML = '';
+                lastSuggestions = [];
+                return;
+            }
+
+            // Debounce so we're not firing a request on every single
+            // keystroke while someone is typing fast.
+            clearTimeout(searchDebounceTimer);
+            searchDebounceTimer = setTimeout(() => {
+                fetch(`/search_templates?q=${encodeURIComponent(name.trim())}`)
+                    .then(res => res.json())
+                    .then(data => {
+                        lastSuggestions = data;
+                        renderSuggestions(data);
+                    })
+                    .catch(() => {});
+            }, 150);
+        }
+
+        function renderSuggestions(data) {
+            const box = document.getElementById('templateSuggestions');
+            box.innerHTML = '';
+
+            if (!data || data.length === 0) return;
+
+            data.forEach(t => {
+                const item = document.createElement('div');
+                item.className = 'suggestion-item';
+
+                const dot = document.createElement('div');
+                dot.className = 'suggestion-sev-dot';
+                dot.style.background = SEVERITY_DOT_COLORS[t.severity] || '#999';
+
+                const name = document.createElement('div');
+                name.className = 'suggestion-name';
+                name.textContent = t.name;
+
+                const sev = document.createElement('div');
+                sev.className = 'suggestion-sev-label';
+                sev.textContent = t.severity || '';
+
+                item.appendChild(dot);
+                item.appendChild(name);
+                item.appendChild(sev);
+
+                // mousedown (not click) + preventDefault so this fires
+                // BEFORE the input's blur event hides the dropdown —
+                // otherwise the click can get swallowed by the blur handler.
+                item.addEventListener('mousedown', (e) => {
+                    e.preventDefault();
+                    fillTemplate(t);
+                });
+
+                box.appendChild(item);
+            });
+        }
+
+        function fillTemplate(template) {
+            document.getElementById('vulnName').value = template.name;
+            document.getElementById('severity').value = template.severity;
+            document.getElementById('cweCve').value = template.cwe_cve || '';
+            document.getElementById('description').value = template.description || '';
+            document.getElementById('businessImpact').value = template.business_impact || '';
+            document.getElementById('remediation').value = template.remediation || '';
+            document.getElementById('references').value = template.references ? template.references.join(', ') : '';
+
+            document.getElementById('templateSuggestions').innerHTML = '';
+            lastFilledTemplateName = template.name.trim().toLowerCase();
+
+            const hint = document.getElementById('templateHint');
+            hint.textContent = '📚 Auto-filled from your knowledge base — only Vulnerable URLs & POC need updating.';
+            hint.style.display = 'block';
+        }
+
+        // Fires when the Vulnerability Name field loses focus. If what was
+        // typed exactly matches a known template (case-insensitive) and the
+        // tester didn't already pick it from the dropdown, auto-fill it
+        // silently — so they don't *have* to click a suggestion, exactly
+        // like typing into a search box that "just knows".
+        function trySilentExactFill() {
+            // Small delay so a mousedown on a suggestion item gets to run
+            // first (mousedown fires before blur completes).
+            setTimeout(() => {
+                const typed = document.getElementById('vulnName').value.trim();
+                if (!typed || typed.toLowerCase() === lastFilledTemplateName) return;
+
+                const exact = lastSuggestions.find(
+                    t => t.name.trim().toLowerCase() === typed.toLowerCase()
+                );
+                if (exact) {
+                    fillTemplate(exact);
+                    return;
+                }
+
+                // Cache miss (e.g. tester typed the full name fast, before
+                // the debounced search returned) — ask the server directly
+                // for an exact match.
+                fetch(`/get_template/${encodeURIComponent(typed)}`)
+                    .then(res => res.ok ? res.json() : null)
+                    .then(t => { if (t && !t.error) fillTemplate(t); })
+                    .catch(() => {});
+
+                document.getElementById('templateSuggestions').innerHTML = '';
+            }, 150);
+        }
+
+        // ===== POC STEPS =====
+        function addPocStep() {
+            pocStepCount++;
+            const container = document.getElementById('pocStepsContainer');
+            const div = document.createElement('div');
+            div.className = 'poc-step';
+            div.innerHTML = `
+                <input type="text" placeholder="Step ${pocStepCount}: Describe what you did..." 
+                       style="width:80%;display:inline-block;">
+                <button class="remove-step-btn" onclick="removePocStep(this)">✕</button>
+            `;
+            container.appendChild(div);
+        }
+
+        function removePocStep(btn) {
+            const container = document.getElementById('pocStepsContainer');
+            if (container.children.length > 1) {
+                btn.parentElement.remove();
+            }
+        }
+
+        // ===== IMAGE PREVIEW =====
+        function previewImages(input) {
+            const preview = document.getElementById('imagePreview');
+            preview.innerHTML = '';
+            uploadedImages = [];
+            
+            for (let file of input.files) {
+                uploadedImages.push(file);
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const img = document.createElement('img');
+                    img.src = e.target.result;
+                    preview.appendChild(img);
+                }
+                reader.readAsDataURL(file);
+            }
+        }
+
+        // ===== ADD VULNERABILITY =====
+        function addVulnerability() {
+            const companyName = document.getElementById('companyName').value;
+            const vulnName = document.getElementById('vulnName').value;
+            
+            if (!companyName || !vulnName) {
+                showStatus('Please enter Company Name and Vulnerability Name', 'error');
+                return;
+            }
+
+            // Collect POC steps
+            const stepInputs = document.querySelectorAll('#pocStepsContainer input');
+            const pocSteps = [];
+            stepInputs.forEach((input, i) => {
+                if (input.value.trim()) {
+                    pocSteps.push({
+                        number: i + 1,
+                        text: input.value.trim()
+                    });
+                }
+            });
+
+            const formData = new FormData();
+            formData.append('company_name', companyName);
+            formData.append('vuln_name', vulnName);
+            formData.append('severity', document.getElementById('severity').value);
+            formData.append('cwe_cve', document.getElementById('cweCve').value);
+            formData.append('description', document.getElementById('description').value);
+            formData.append('business_impact', document.getElementById('businessImpact').value);
+            formData.append('remediation', document.getElementById('remediation').value);
+            formData.append('references', JSON.stringify(document.getElementById('references').value.split(',').map(s => s.trim()).filter(s => s)));
+            formData.append('vulnerable_urls', JSON.stringify(document.getElementById('vulnerableUrls').value.split(',').map(s => s.trim()).filter(s => s)));
+            formData.append('poc_steps', JSON.stringify(pocSteps));
+            formData.append('status', document.getElementById('status').value);
+            
+            // Add images
+            const fileInput = document.getElementById('pocImages');
+            for (let file of fileInput.files) {
+                formData.append('poc_images', file);
+            }
+
+            fetch('/add_vulnerability', {
+                method: 'POST',
+                body: formData
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    const kbNote = data.template_created
+                        ? ' 📚 New template saved to your knowledge base for next time.'
+                        : ' 📚 Knowledge base template refreshed.';
+                    showStatus('✅ Vulnerability added successfully!' + kbNote, 'success');
+                    loadVulnerabilities(companyName);
+                    clearForm();
+                } else {
+                    showStatus('❌ Error: ' + data.message, 'error');
+                }
+            })
+            .catch(err => {
+                showStatus('❌ Error: ' + err.message, 'error');
+            });
+        }
+
+        // ===== LOAD VULNERABILITIES =====
+        function loadVulnerabilities(companyName) {
+            fetch(`/get_vulnerabilities/${encodeURIComponent(companyName)}`)
+                .then(res => res.json())
+                .then(data => {
+                    const list = document.getElementById('vulnList');
+                    if (data.length === 0) {
+                        list.innerHTML = '<p style="color:#999;">No vulnerabilities added yet.</p>';
+                        return;
+                    }
+                    
+                    list.innerHTML = '';
+                    data.forEach((v, i) => {
+                        const div = document.createElement('div');
+                        div.className = 'vuln-item';
+                        const sevClass = 'sev-' + v.severity.toLowerCase();
+                        div.innerHTML = `
+                            <span>
+                                <strong>${i+1}. ${v.name}</strong>
+                                <span class="badge ${sevClass}">${v.severity}</span>
+                                <span style="font-size:12px;color:#666;">${v.cwe_cve || 'N/A'}</span>
+                            </span>
+                            <span style="font-size:12px;color:#999;">${v.created_at}</span>
+                        `;
+                        list.appendChild(div);
+                    });
+                });
+        }
+
+        // ===== GENERATE REPORT =====
+        function generateReport() {
+            const companyName = document.getElementById('companyName').value;
+            if (!companyName) {
+                showStatus('Please enter Company Name', 'error');
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append('company_name', companyName);
+            formData.append('tester_name', document.getElementById('testerName').value);
+            formData.append('reviewer_name', document.getElementById('reviewerName').value);
+            formData.append('approver_name', document.getElementById('approverName').value);
+            formData.append('scope_url', document.getElementById('scopeUrl').value);
+            formData.append('scope_env', 'PROD');
+            formData.append('scope_methodology', 'BlackBox');
+
+            // === NEW: client name shown in the header/cover page (falls back
+            // to Company Name server-side if left blank) ===
+            formData.append('client_name', document.getElementById('clientName').value);
+
+            // Header logo & watermark are ProTechmanize's bundled default
+            // branding, applied automatically server-side — nothing to
+            // attach here.
+
+            showStatus('⏳ Generating report... Please wait.', 'success');
+
+            fetch('/generate_report', {
+                method: 'POST',
+                body: formData
+            })
+            .then(res => {
+                if (res.ok) {
+                    showStatus('✅ Report generated successfully! Downloading...', 'success');
+                    return res.blob();
+                }
+                return res.json().then(err => { throw new Error(err.message); });
+            })
+            .then(blob => {
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `VAPT_Report_${companyName}_${new Date().toISOString().slice(0,10)}.docx`;
+                document.body.appendChild(a);
+                a.click();
+                a.remove();
+            })
+            .catch(err => {
+                showStatus('❌ Error: ' + err.message, 'error');
+            });
+        }
+
+        // ===== CLEAR FORM =====
+        function clearForm() {
+            document.getElementById('vulnName').value = '';
+            document.getElementById('cweCve').value = '';
+            document.getElementById('description').value = '';
+            document.getElementById('businessImpact').value = '';
+            document.getElementById('remediation').value = '';
+            document.getElementById('references').value = '';
+            document.getElementById('vulnerableUrls').value = '';
+            document.getElementById('pocImages').value = '';
+            document.getElementById('imagePreview').innerHTML = '';
+
+            // Reset knowledge-base autocomplete state for the next entry
+            document.getElementById('templateSuggestions').innerHTML = '';
+            document.getElementById('templateHint').style.display = 'none';
+            lastSuggestions = [];
+            lastFilledTemplateName = '';
+
+            // Reset POC steps
+            const container = document.getElementById('pocStepsContainer');
+            container.innerHTML = `
+                <div class="poc-step">
+                    <input type="text" placeholder="Step 1: Describe what you did..." 
+                           style="width:80%;display:inline-block;">
+                    <button class="remove-step-btn" onclick="removePocStep(this)">✕</button>
+                </div>
+            `;
+            pocStepCount = 1;
+        }
+
+        function clearAll() {
+            if (confirm('Delete all vulnerabilities for this company?')) {
+                // Just reload the page
+                location.reload();
+            }
+        }
+
+        // ===== STATUS MESSAGE =====
+        function showStatus(message, type) {
+            const msg = document.getElementById('statusMsg');
+            msg.textContent = message;
+            msg.className = 'status-msg ' + type;
+            setTimeout(() => {
+                msg.className = 'status-msg';
+            }, 8000);
+        }
+
+        // ===== LOAD INITIAL =====
+        document.addEventListener('DOMContentLoaded', function() {
+            loadVulnerabilities(document.getElementById('companyName').value);
+        });
+
+        // Auto-load on company name change
+        document.getElementById('companyName').addEventListener('change', function() {
+            loadVulnerabilities(this.value);
+        });
+    </script>
+</body>
+</html>
